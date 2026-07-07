@@ -6,22 +6,47 @@ import os
 import json
 
 
+# =====================
+# LOAD TOKEN
+# =====================
+
 load_dotenv()
 
 TOKEN = os.getenv("DISCORD_TOKEN")
 
 
-# สร้างไฟล์ข้อมูลอัตโนมัติ
-if not os.path.exists("memory.json"):
-    with open("memory.json","w",encoding="utf-8") as f:
-        json.dump({},f,ensure_ascii=False)
+# =====================
+# CREATE DATA FILE
+# =====================
+
+FILES = {
+    "memory.json": {},
+    "level.json": {},
+    "warnings.json": {}
+}
 
 
-if not os.path.exists("level.json"):
-    with open("level.json","w",encoding="utf-8") as f:
-        json.dump({},f)
+for filename, data in FILES.items():
+
+    if not os.path.exists(filename):
+
+        with open(
+            filename,
+            "w",
+            encoding="utf-8"
+        ) as f:
+
+            json.dump(
+                data,
+                f,
+                indent=4,
+                ensure_ascii=False
+            )
 
 
+# =====================
+# BOT SETTINGS
+# =====================
 
 intents = discord.Intents.default()
 
@@ -35,13 +60,12 @@ bot = commands.Bot(
 )
 
 
-
 VERIFY_ROLE = "สมาชิก"
 
 
 
 # =====================
-# ONLINE
+# BOT ONLINE
 # =====================
 
 @bot.event
@@ -73,11 +97,12 @@ async def on_ready():
     description="ทักทาย Yuka"
 )
 async def hello(
-    interaction:discord.Interaction
+    interaction: discord.Interaction
 ):
 
     await interaction.response.send_message(
-        f"สวัสดี {interaction.user.mention} 💙\nฉันคือ Yuka"
+        f"สวัสดี {interaction.user.mention} 💙\n"
+        "ฉันคือ YukaBot"
     )
 
 
@@ -87,21 +112,21 @@ async def hello(
     description="เช็คความเร็วบอท"
 )
 async def ping(
-    interaction:discord.Interaction
+    interaction: discord.Interaction
 ):
 
     ms = round(
-        bot.latency*1000
+        bot.latency * 1000
     )
 
     await interaction.response.send_message(
-        f"🏓 Pong {ms}ms"
+        f"🏓 Pong! {ms}ms"
     )
 
 
 
 # =====================
-# AI + MEMORY
+# AI MEMORY
 # =====================
 
 
@@ -110,11 +135,11 @@ async def ping(
     description="ถาม Yuka AI"
 )
 async def ask(
-    interaction:discord.Interaction,
-    message:str
+    interaction: discord.Interaction,
+    message: str
 ):
 
-    user=str(
+    user_id = str(
         interaction.user.id
     )
 
@@ -124,10 +149,10 @@ async def ask(
         encoding="utf-8"
     ) as f:
 
-        data=json.load(f)
+        memory = json.load(f)
 
 
-    data[user]=message
+    memory[user_id] = message
 
 
     with open(
@@ -137,7 +162,7 @@ async def ask(
     ) as f:
 
         json.dump(
-            data,
+            memory,
             f,
             indent=4,
             ensure_ascii=False
@@ -145,7 +170,8 @@ async def ask(
 
 
     await interaction.response.send_message(
-        f"💙 Yuka จำข้อความนี้แล้ว:\n{message}"
+        "💙 Yuka จำข้อความของคุณแล้ว\n\n"
+        f"คุณพูดว่า: {message}"
     )
 
 
@@ -163,48 +189,52 @@ async def on_message(message):
 
 
     with open(
-        "level.json"
+        "level.json",
+        encoding="utf-8"
     ) as f:
 
-        data=json.load(f)
+        levels = json.load(f)
 
 
-    uid=str(
+    uid = str(
         message.author.id
     )
 
 
-    if uid not in data:
+    if uid not in levels:
 
-        data[uid]={
-            "xp":0,
-            "level":1
+        levels[uid] = {
+            "xp": 0,
+            "level": 1
         }
 
 
-    data[uid]["xp"]+=5
+    levels[uid]["xp"] += 5
 
 
-    if data[uid]["xp"]>=100:
+    if levels[uid]["xp"] >= 100:
 
-        data[uid]["level"]+=1
-        data[uid]["xp"]=0
+        levels[uid]["level"] += 1
+        levels[uid]["xp"] = 0
 
 
         await message.channel.send(
-            f"🎉 {message.author.mention} Level Up เป็น {data[uid]['level']}"
+            f"🎉 {message.author.mention}\n"
+            f"Level Up เป็น Level {levels[uid]['level']}"
         )
 
 
     with open(
         "level.json",
-        "w"
+        "w",
+        encoding="utf-8"
     ) as f:
 
         json.dump(
-            data,
+            levels,
             f,
-            indent=4
+            indent=4,
+            ensure_ascii=False
         )
 
 
@@ -213,7 +243,7 @@ async def on_message(message):
 
 
 # =====================
-# VERIFY BUTTON
+# VERIFY SYSTEM
 # =====================
 
 
@@ -228,12 +258,13 @@ class VerifyView(View):
 
     @discord.ui.button(
         label="✅ ยืนยันตัวตน",
-        style=discord.ButtonStyle.green
+        style=discord.ButtonStyle.green,
+        custom_id="verify_button"
     )
     async def verify(
         self,
-        interaction,
-        button
+        interaction: discord.Interaction,
+        button: Button
     ):
 
 
@@ -243,22 +274,25 @@ class VerifyView(View):
         )
 
 
-        if role:
-
-            await interaction.user.add_roles(role)
-
+        if role is None:
 
             await interaction.response.send_message(
-                "✅ ได้รับยศสมาชิกแล้ว",
+                "❌ ไม่พบ Role สมาชิก",
                 ephemeral=True
             )
 
-        else:
+            return
 
-            await interaction.response.send_message(
-                "❌ ไม่พบยศ สมาชิก",
-                ephemeral=True
-            )
+
+        await interaction.user.add_roles(
+            role
+        )
+
+
+        await interaction.response.send_message(
+            "🎉 ยืนยันตัวตนสำเร็จ!",
+            ephemeral=True
+        )
 
 
 
@@ -267,19 +301,48 @@ class VerifyView(View):
     description="สร้างระบบยืนยันตัวตน"
 )
 async def verify(
-    interaction:discord.Interaction
+    interaction: discord.Interaction
 ):
 
-    embed=discord.Embed(
-        title="🔐 Verify",
-        description="กดปุ่มเพื่อยืนยันตัวตน"
+    embed = discord.Embed(
+        title="🔐 ระบบยืนยันตัวตน",
+        description=
+        "กดปุ่มด้านล่างเพื่อรับยศสมาชิก",
+        color=0x00ff00
     )
 
 
     await interaction.response.send_message(
         embed=embed,
         view=VerifyView()
+    )# =====================
+# WELCOME SYSTEM
+# =====================
+
+
+@bot.event
+async def on_member_join(member):
+
+    channel = discord.utils.get(
+        member.guild.text_channels,
+        name="welcome"
     )
+
+
+    if channel:
+
+        embed = discord.Embed(
+            title="🎉 สมาชิกใหม่",
+            description=
+            f"ยินดีต้อนรับ {member.mention}\n"
+            "เข้าสู่เซิร์ฟเวอร์ 💙",
+            color=0x00ffff
+        )
+
+
+        await channel.send(
+            embed=embed
+        )
 
 
 
@@ -293,14 +356,15 @@ async def verify(
     description="ลบข้อความ"
 )
 async def clear(
-    interaction:discord.Interaction,
-    amount:int
+    interaction: discord.Interaction,
+    amount: int
 ):
 
     if not interaction.user.guild_permissions.manage_messages:
 
         await interaction.response.send_message(
-            "❌ ไม่มีสิทธิ์"
+            "❌ คุณไม่มีสิทธิ์ใช้คำสั่งนี้",
+            ephemeral=True
         )
 
         return
@@ -312,22 +376,221 @@ async def clear(
 
 
     await interaction.response.send_message(
-        "✅ ลบแล้ว",
+        f"🧹 ลบข้อความ {amount} ข้อความแล้ว",
         ephemeral=True
     )
 
 
 
 # =====================
-# START
+# KICK
 # =====================
+
+
+@bot.tree.command(
+    name="kick",
+    description="เตะสมาชิก"
+)
+async def kick(
+    interaction: discord.Interaction,
+    member: discord.Member,
+    reason: str = "ไม่มีเหตุผล"
+):
+
+    if not interaction.user.guild_permissions.kick_members:
+
+        await interaction.response.send_message(
+            "❌ ไม่มีสิทธิ์",
+            ephemeral=True
+        )
+
+        return
+
+
+    await member.kick(
+        reason=reason
+    )
+
+
+    await interaction.response.send_message(
+        f"👢 เตะ {member.mention} แล้ว\n"
+        f"เหตุผล: {reason}"
+    )
+
+
+
+# =====================
+# BAN
+# =====================
+
+
+@bot.tree.command(
+    name="ban",
+    description="แบนสมาชิก"
+)
+async def ban(
+    interaction: discord.Interaction,
+    member: discord.Member,
+    reason: str = "ไม่มีเหตุผล"
+):
+
+    if not interaction.user.guild_permissions.ban_members:
+
+        await interaction.response.send_message(
+            "❌ ไม่มีสิทธิ์",
+            ephemeral=True
+        )
+
+        return
+
+
+    await member.ban(
+        reason=reason
+    )
+
+
+    await interaction.response.send_message(
+        f"🔨 แบน {member.mention} แล้ว"
+    )
+
+
+
+# =====================
+# WARN SYSTEM
+# =====================
+
+
+@bot.tree.command(
+    name="warn",
+    description="เตือนสมาชิก"
+)
+async def warn(
+    interaction: discord.Interaction,
+    member: discord.Member,
+    reason: str
+):
+
+    if not interaction.user.guild_permissions.manage_messages:
+
+        await interaction.response.send_message(
+            "❌ ไม่มีสิทธิ์",
+            ephemeral=True
+        )
+
+        return
+
+
+    with open(
+        "warnings.json",
+        encoding="utf-8"
+    ) as f:
+
+        warnings = json.load(f)
+
+
+
+    uid = str(
+        member.id
+    )
+
+
+    if uid not in warnings:
+
+        warnings[uid] = []
+
+
+
+    warnings[uid].append(
+        reason
+    )
+
+
+
+    with open(
+        "warnings.json",
+        "w",
+        encoding="utf-8"
+    ) as f:
+
+        json.dump(
+            warnings,
+            f,
+            indent=4,
+            ensure_ascii=False
+        )
+
+
+
+    await interaction.response.send_message(
+        f"⚠️ เตือน {member.mention}\n"
+        f"เหตุผล: {reason}"
+    )
+
+
+
+# =====================
+# CHECK WARN
+# =====================
+
+
+@bot.tree.command(
+    name="warnings",
+    description="ดูประวัติคำเตือน"
+)
+async def warnings(
+    interaction: discord.Interaction,
+    member: discord.Member
+):
+
+    with open(
+        "warnings.json",
+        encoding="utf-8"
+    ) as f:
+
+        data = json.load(f)
+
+
+
+    warns = data.get(
+        str(member.id),
+        []
+    )
+
+
+    if len(warns) == 0:
+
+        await interaction.response.send_message(
+            f"✅ {member.mention} ไม่มีคำเตือน"
+        )
+
+        return
+
+
+
+    text = "\n".join(
+        warns
+    )
+
+
+    await interaction.response.send_message(
+        f"⚠️ คำเตือนของ {member.mention}\n\n{text}"
+    )
+
+
+
+# =====================
+# START BOT
+# =====================
+
 
 if TOKEN:
 
-    bot.run(TOKEN)
+    bot.run(
+        TOKEN
+    )
 
 else:
 
     print(
-        "❌ ไม่พบ DISCORD_TOKEN"
+        "❌ ไม่พบ DISCORD_TOKEN ใน .env"
     )
