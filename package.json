@@ -1,7 +1,7 @@
 {
-  "name": "discord-multi-bot",
+  "name": "yukabot",
   "version": "1.0.0",
-  "description": "Discord Bot Multi-System and Music",
+  "description": "YukaBot Multi-System and Music",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
