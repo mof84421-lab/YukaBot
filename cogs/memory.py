@@ -7,18 +7,17 @@ import database
 
 class Memory(commands.Cog):
 
-
     def __init__(self,bot):
 
         self.bot = bot
 
-        database.create()
+        database.setup()
 
 
 
     @app_commands.command(
         name="remember",
-        description="ให้ Yuka จำ"
+        description="ให้ Yuka จำข้อมูล"
     )
     async def remember(
         self,
@@ -41,7 +40,7 @@ class Memory(commands.Cog):
 
     @app_commands.command(
         name="memory",
-        description="ดูความจำ"
+        description="ดูความจำของ Yuka"
     )
     async def memory(
         self,
@@ -56,16 +55,16 @@ class Memory(commands.Cog):
 
         if data:
 
-            result="\n".join(data)
-
             await interaction.response.send_message(
-                "🧠 Yuka จำได้:\n"+result
+                "🧠 สิ่งที่ Yuka จำได้:\n"
+                +
+                "\n".join(data)
             )
 
         else:
 
             await interaction.response.send_message(
-                "ยังไม่มีความจำ"
+                "ยังไม่มีข้อมูลที่จำ"
             )
 
 
