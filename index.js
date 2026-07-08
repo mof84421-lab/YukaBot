@@ -1,14 +1,14 @@
-const { Client, GatewayIntentBits } = require('discord.js');
+const { Client, GatewayIntentBits, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const express = require('express');
 
 // ==========================================
-// 1. ระบบ WEB SERVER สำหรับ RENDER (ห้ามลบ)
+// 1. ระบบ WEB SERVER สำหรับ RENDER
 // ==========================================
 const app = express();
 const port = process.env.PORT || 3000;
 
 app.get('/', (req, res) => {
-  res.send('🤖 บอทของคุณกำลังออนไลน์และทำงานอยู่ 24 ชม. บน Render!');
+  res.send('🤖 บอทออนไลน์พร้อมระบบยืนยันตัวตนทำงานอยู่บน Render!');
 });
 
 app.listen(port, () => {
@@ -23,8 +23,8 @@ const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent, // จำเป็นสำหรับระบบตอบกลับอัตโนมัติ
-    GatewayIntentBits.GuildMembers     // จำเป็นสำหรับระบบต้อนรับสมาชิกใหม่
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildMembers
   ]
 });
 
@@ -35,16 +35,16 @@ const client = new Client({
 client.once('ready', async () => {
   console.log(`[Bot] ล็อกอินเข้าสู่ระบบในชื่อ: ${client.user.tag}!`);
 
-  // รายการ Slash Commands ที่ต้องการสร้าง
+  // เพิ่มคำสั่ง /setup-verify เพื่อสร้างปุ่มยืนยันตัวตน
   const commands = [
     { name: 'ping', description: 'เช็คความเร็วบอท' },
-    { name: 'บ๊ายบาย', description: 'ให้บอทกล่าวลา' }
+    { name: 'บ๊ายบาย', description: 'ให้บอทกล่าวลา' },
+    { name: 'setup-verify', description: 'สร้างปุ่มกดเปิดระบบยืนยันตัวตน (สำหรับแอดมิน)' }
   ];
 
   try {
-    // ลงทะเบียนคำสั่งไปที่ Discord
     await client.application.commands.set(commands);
-    console.log('[Slash Commands] ลงทะเบียนคำสั่ง / ทั้งหมดสำเร็จแล้ว!');
+    console.log('[Slash Commands] ลงทะเบียนคำสั่งทั้งหมดสำเร็จแล้ว!');
   } catch (error) {
     console.error('[Slash Commands] เกิดข้อผิดพลาด:', error);
   }
@@ -52,57 +52,101 @@ client.once('ready', async () => {
 
 
 // ==========================================
-// 4. ระบบคำสั่งแบบ SLASH COMMANDS (พิมพ์ /)
+// 4. ระบบคำสั่งแบบ SLASH COMMANDS & การกดปุ่ม
 // ==========================================
 client.on('interactionCreate', async interaction => {
-  if (!interaction.isChatInputCommand()) return;
-
-  const { commandName } = interaction;
-
-  if (commandName === 'ping') {
-    await interaction.reply(`🏓 พง! ความเร็วอินเทอร์เน็ตบอท: ${client.ws.ping}ms`);
-  }
   
-  if (commandName === 'บ๊ายบาย') {
-    await interaction.reply(`บ๊ายบายจ้า คุณ ${interaction.user.username} 👋 ไว้เจอกันใหม่นะ!`);
+  // ส่วนที่ 4.1: จัดการเมื่อมีคนใช้คำสั่งพิมพ์ /
+  if (interaction.isChatInputCommand()) {
+    const { commandName } = interaction;
+
+    if (commandName === 'ping') {
+      await interaction.reply(`🏓 พง! ความเร็วอินเทอร์เน็ตบอท: ${client.ws.ping}ms`);
+    }
+    
+    if (commandName === 'บ๊ายบาย') {
+      await interaction.reply(`บ๊ายบายจ้า คุณ ${interaction.user.username} 👋 ไว้เจอกันใหม่นะ!`);
+    }
+
+    // คำสั่งสร้างปุ่มยืนยันตัวตน (ให้พิมพ์คำสั่งนี้ในห้องที่อยากให้คนมากดยืนยันตัวตน)
+    if (commandName === 'setup-verify') {
+      // ตรวจสอบว่าคนใช้คำสั่งเป็นแอดมินหรือไม่ (เพื่อความปลอดภัย)
+      if (!interaction.member.permissions.has('Administrator')) {
+        return interaction.reply({ content: '❌ เฉพาะแอดมินเท่านั้นที่ใช้คำสั่งนี้ได้ครับ!', ephemeral: true });
+      }
+
+      // สร้างปุ่มกด
+      const row = new ActionRowBuilder()
+        .addComponents(
+          new ButtonBuilder()
+            .setCustomId('verify_button')
+            .setLabel('✅ กดตรงนี้เพื่อยืนยันตัวตน')
+            .setStyle(ButtonStyle.Success) // ปุ่มสีเขียว
+        );
+
+      await interaction.reply({
+        content: '⚙️ **ระบบยืนยันตัวตน (Verification)**\nกรุณากดปุ่มด้านล่างเพื่อเข้าสู่เซิร์ฟเวอร์และเปิดใช้งานห้องต่าง ๆ ครับ',
+        components: [row]
+      });
+    }
+  }
+
+  // ส่วนที่ 4.2: จัดการเมื่อมีคน "กดปุ่ม" ยืนยันตัวตน
+  if (interaction.isButton()) {
+    if (interaction.customId === 'verify_button') {
+      
+      // ⚠️ ให้เปลี่ยนชื่อยศตรงนี้ให้ตรงกับยศในดิสคอร์ดของคุณ
+      const roleName = 'Member'; 
+      const role = interaction.guild.roles.cache.find(r => r.name === roleName);
+
+      if (!role) {
+        return interaction.reply({ 
+          content: `❌ ไม่เจอยศที่ชื่อ "${roleName}" ในเซิร์ฟเวอร์ กรุณาแจ้งแอดมินให้สร้างยศนี้ก่อนครับ`, 
+          ephemeral: true 
+        });
+      }
+
+      // ตรวจสอบว่าเขามียศนี้อยู่แล้วหรือยัง
+      if (interaction.member.roles.cache.has(role.id)) {
+        return interaction.reply({ content: '🤝 คุณเคยยืนยันตัวตนไปแล้วนะคราบบบ!', ephemeral: true });
+      }
+
+      try {
+        // แจกยศให้คนที่กดปุ่ม
+        await interaction.member.roles.add(role);
+        // ephemeral: true หมายถึง ข้อความนี้จะเห็นแค่คนที่กดปุ่มเท่านั้น คนอื่นไม่เห็นรกแชท
+        await interaction.reply({ content: '🎉 ยืนยันตัวตนสำเร็จ! ขอให้สนุกกับเซิร์ฟเวอร์เรานะครับ', ephemeral: true });
+      } catch (error) {
+        console.error(error);
+        await interaction.reply({ content: '❌ บอทไม่สามารถให้ยศได้ เนื่องจากยศของบอทอยู่ต่ำกว่ายศนี้ในตั้งค่าเซิร์ฟเวอร์!', ephemeral: true });
+      }
+    }
   }
 });
 
 
 // ==========================================
-// 5. ระบบต้อนรับสมาชิกใหม่ (WELCOME MESSAGE)
+// 5. ระบบต้อนรับสมาชิกใหม่
 // ==========================================
 client.on('guildMemberAdd', member => {
-  // พยายามหาห้องที่ชื่อว่า 'ต้อนรับสมาชิก' หรือ 'welcome' 
   const channel = member.guild.channels.cache.find(ch => ch.name === 'ต้อนรับสมาชิก' || ch.name === 'welcome') 
-                  || member.guild.systemChannel; // ถ้าหาไม่เจอ ให้ส่งเข้าห้องระบบเริ่มต้นของดิสคอร์ดแทน
+                  || member.guild.systemChannel;
 
   if (!channel) return;
-
-  channel.send(`🎉 ยินดีต้อนรับคุณ ${member} เข้าสู่เซิร์ฟเวอร์ **${member.guild.name}** อย่างเป็นทางการครับ! ขอให้สนุกนะ! ✨`);
+  channel.send(`🎉 ยินดีต้อนรับคุณ ${member} เข้าสู่เซิร์ฟเวอร์! อย่าลืมไปกดยืนยันตัวตนด้วยนะครับ ✨`);
 });
 
 
 // ==========================================
-// 6. ระบบตอบกลับคำอัตโนมัติ (AUTO RESPONSE)
+// 6. ระบบตอบกลับคำอัตโนมัติ
 // ==========================================
 client.on('messageCreate', message => {
-  // ถ้าเป็นข้อความจากบอทด้วยกันเอง ไม่ต้องตอบกลับ
   if (message.author.bot) return;
 
-  // ตรวจจับคำแบบตรงตัว
   if (message.content === 'สวัสดี') {
     message.reply('สวัสดีครับผม! มีอะไรให้บอทรับใช้ไหมครับ? 🤖');
   }
-
-  // ตรวจจับคำที่มีอยู่ในประโยค (ไม่จำเป็นต้องพิมพ์ตรงเป๊ะ)
-  if (message.content.includes('ขอเลขบัญชี') || message.content.includes('โดเนท')) {
-    message.reply('💰 สามารถสนับสนุนเซิร์ฟเวอร์เราได้ที่บัญชี 000-0-00000-0 นะครับ ขอบคุณมากๆ ครับ! 🙏');
-  }
 });
 
-
-// ==========================================
-// 7. รันบอทด้วย TOKEN จาก ENVIRONMENT VARIABLE
-// ==========================================
+// รันบอท
 client.login(process.env.TOKEN);
