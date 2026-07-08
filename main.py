@@ -10,6 +10,13 @@ from config import config
 from database.database import setup_database
 
 
+# =========================
+# Logging System
+# =========================
+
+# สร้างโฟลเดอร์ logs อัตโนมัติ
+os.makedirs("logs", exist_ok=True)
+
 
 logging.basicConfig(
     level=logging.INFO,
@@ -19,10 +26,16 @@ logging.basicConfig(
 )
 
 
+# =========================
+# Discord Intents
+# =========================
 
 intents = discord.Intents.all()
 
 
+# =========================
+# YukaBot Class
+# =========================
 
 class YukaBot(commands.Bot):
 
@@ -36,11 +49,11 @@ class YukaBot(commands.Bot):
 
     async def setup_hook(self):
 
-        # เริ่ม Database
+        # Database
         await setup_database()
 
 
-        # โหลด Cogs
+        # Load Cogs
         if os.path.exists("./cogs"):
 
             for file in os.listdir("./cogs"):
@@ -65,7 +78,6 @@ class YukaBot(commands.Bot):
                         )
 
 
-
     async def on_ready(self):
 
         # Sync Slash Commands
@@ -86,9 +98,8 @@ class YukaBot(commands.Bot):
             )
 
 
-
         print(
-            f"""
+f"""
 =========================
 🤖 YukaBot Online
 
@@ -106,7 +117,6 @@ Servers:
         )
 
 
-
         await self.change_presence(
 
             activity=discord.Game(
@@ -116,14 +126,17 @@ Servers:
         )
 
 
+# =========================
+# Create Bot
+# =========================
 
 bot = YukaBot()
 
 
 
-# -------------------------
+# =========================
 # Test Command
-# -------------------------
+# =========================
 
 @bot.tree.command(
     name="ping",
@@ -134,33 +147,24 @@ async def ping(
 ):
 
     await interaction.response.send_message(
-
         f"🏓 Pong! {round(bot.latency * 1000)}ms"
-
     )
 
 
 
-# -------------------------
+# =========================
 # Error Handler
-# -------------------------
+# =========================
 
 @bot.tree.error
 async def on_app_command_error(
-
     interaction: discord.Interaction,
-
     error
-
 ):
 
-
     if isinstance(
-
         error,
-
         discord.app_commands.MissingPermissions
-
     ):
 
         message = (
@@ -168,13 +172,9 @@ async def on_app_command_error(
         )
 
 
-
     elif isinstance(
-
         error,
-
         discord.app_commands.CommandOnCooldown
-
     ):
 
         message = (
@@ -182,56 +182,45 @@ async def on_app_command_error(
         )
 
 
-
     else:
 
-
-        print(
+        logging.error(
             f"Command Error: {error}"
         )
-
 
         message = (
             "❌ เกิดข้อผิดพลาดของระบบ"
         )
 
 
-
     try:
 
         if interaction.response.is_done():
 
-
             await interaction.followup.send(
-
                 message,
-
                 ephemeral=True
-
             )
-
 
         else:
 
-
             await interaction.response.send_message(
-
                 message,
-
                 ephemeral=True
-
             )
 
 
     except Exception as e:
 
-        print(
+        logging.error(
             f"Error Handler Failed: {e}"
         )
 
 
 
-
+# =========================
+# Run Bot
+# =========================
 
 async def main():
 
