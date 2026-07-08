@@ -17,9 +17,8 @@ const client = new Client({
   ]
 });
 
-// ตั้งค่าระบบเพลง DisTube
+// ตั้งค่าระบบเพลง DisTube (แก้ไขสำหรับ v5 เรียบร้อยแล้ว)
 client.distube = new DisTube(client, {
-  leaveOnStop: true,
   emitNewSongOnly: true,
   emitAddSongWhenCreatingQueue: false,
   emitAddListWhenCreatingQueue: false,
@@ -39,7 +38,7 @@ server.listen(PORT, () => {
 });
 
 // ==========================================
-// 🔄 โหลดยก EVENTS HANDLER (แก้ไขระบบคัดกรอง)
+// 🔄 โหลดยก EVENTS HANDLER (มีระบบคัดกรอง)
 // ==========================================
 const eventsPath = path.join(__dirname, 'events');
 const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js'));
