@@ -7,7 +7,7 @@ const { DisTube } = require('distube');
 // ==========================================
 // RENDER WEB SERVER (อัปเดตเป็นชื่อ YukaBot)
 // ==========================================
-const app = report express();
+const app = express();
 const port = process.env.PORT || 3000;
 app.get('/', (req, res) => res.send('🤖 YukaBot ออนไลน์พร้อมระบบเพลงและมัลติฟังก์ชันบน Render แล้ว!'));
 app.listen(port, () => console.log(`[Server] YukaBot Port: ${port}`));
