@@ -1,13 +1,17 @@
 import discord
 import random
+import aiosqlite
 
 from discord.ext import commands
+from discord import app_commands
 
 from database.database import (
     create_user,
-    get_user,
-    add_xp
+    get_user
 )
+
+
+DATABASE = "database/users.db"
 
 
 class Level(commands.Cog):
@@ -25,10 +29,9 @@ class Level(commands.Cog):
             return
 
 
-        user_id = message.author.id
-
-
-        await create_user(user_id)
+        await create_user(
+            message.author.id
+        )
 
 
         xp = random.randint(
@@ -37,107 +40,75 @@ class Level(commands.Cog):
         )
 
 
-        await add_xp(
-            user_id,
-            xp
-        )
+        async with aiosqlite.connect(
+            DATABASE
+        ) as db:
 
 
-        data = await get_user(
-            user_id
-        )
+            await db.execute(
+                """
+                UPDATE users
 
+                SET xp=xp+?
 
-        if data:
-
-            level = data[2]
-
-            current_xp = data[1]
-
-
-            needed = level * 100
-
-
-            if current_xp >= needed:
-
-
-                async with __import__(
-                    "aiosqlite"
-                ).connect(
-                    "database/users.db"
-                ) as db:
-
-
-                    await db.execute(
-                    """
-                    UPDATE users
-                    SET level=level+1,
-                    xp=0
-                    WHERE user_id=?
-                    """,
-                    (user_id,)
-                    )
-
-
-                    await db.commit()
-
-
-
-                await message.channel.send(
-
-                    f"🎉 {message.author.mention} "
-                    f"เลเวลเพิ่มเป็น {level+1}"
-
+                WHERE user_id=?
+                """,
+                (
+                    xp,
+                    message.author.id
                 )
+            )
+
+
+            await db.commit()
 
 
 
-    @commands.command(
-        name="rank"
+    @app_commands.command(
+        name="rank",
+        description="ดู Level และ XP"
     )
     async def rank(
         self,
-        ctx
+        interaction:discord.Interaction
     ):
 
+
         await create_user(
-            ctx.author.id
+            interaction.user.id
         )
 
 
         data = await get_user(
-            ctx.author.id
+            interaction.user.id
         )
 
 
         embed = discord.Embed(
-
             title="🏆 Rank",
-
             color=0x00ffff
-
         )
 
 
         embed.add_field(
-
             name="Level",
-
             value=data[2]
-
         )
 
 
         embed.add_field(
-
             name="XP",
-
             value=data[1]
-
         )
 
 
-        await ctx.send(
+        embed.add_field(
+            name="Money",
+            value=data[3]
+        )
+
+
+        await interaction.response.send_message(
             embed=embed
         )
 
