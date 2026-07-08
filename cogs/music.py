@@ -11,9 +11,33 @@ from music.utils import MusicUtils
 class Music(commands.Cog):
 
     def __init__(self, bot):
+
         self.bot = bot
         self.queue = MusicQueue()
-        self.player = MusicPlayer(bot, self.queue)
+        self.player = MusicPlayer(
+            bot,
+            self.queue
+        )
+
+
+    async def safe_send_error(self, interaction, text):
+
+        embed = MusicEmbeds.error(text)
+
+        if interaction.response.is_done():
+
+            await interaction.followup.send(
+                embed=embed,
+                ephemeral=True
+            )
+
+        else:
+
+            await interaction.response.send_message(
+                embed=embed,
+                ephemeral=True
+            )
+
 
     @app_commands.command(
         name="play",
@@ -25,48 +49,75 @@ class Music(commands.Cog):
         query: str
     ):
 
+        if interaction.guild is None:
+            return
+
         if not MusicUtils.in_voice(interaction):
-            await interaction.response.send_message(
-                embed=MusicEmbeds.error(
-                    "กรุณาเข้าห้องเสียงก่อน"
-                ),
-                ephemeral=True
+
+            await self.safe_send_error(
+                interaction,
+                "กรุณาเข้าห้องเสียงก่อน"
             )
             return
+
 
         await interaction.response.defer()
 
-        success, result = await self.player.play(
-            interaction,
-            query
-        )
 
-        if not success:
-            await interaction.followup.send(
-                embed=MusicEmbeds.error(result)
-            )
-            return
+        try:
 
-        song = result["song"]
-
-        if result["status"] == "play":
-
-            await interaction.followup.send(
-                embed=MusicEmbeds.now_playing(song)
+            success, result = await self.player.play(
+                interaction,
+                query
             )
 
-        else:
 
-            position = self.queue.size(
-                interaction.guild.id
+            if not success:
+
+                await interaction.followup.send(
+                    embed=MusicEmbeds.error(result)
+                )
+                return
+
+
+            song = result["song"]
+
+
+            if result["status"] == "play":
+
+                await interaction.followup.send(
+                    embed=MusicEmbeds.now_playing(song)
+                )
+
+
+            else:
+
+                position = self.queue.size(
+                    interaction.guild.id
+                )
+
+
+                await interaction.followup.send(
+                    embed=MusicEmbeds.added_queue(
+                        song,
+                        position
+                    )
+                )
+
+
+        except Exception as e:
+
+            print(
+                f"[PLAY ERROR] {e}"
             )
 
             await interaction.followup.send(
-                embed=MusicEmbeds.added_queue(
-                    song,
-                    position
+                embed=MusicEmbeds.error(
+                    "เกิดข้อผิดพลาดในการเล่นเพลง"
                 )
             )
+
+
 
     @app_commands.command(
         name="pause",
@@ -85,12 +136,12 @@ class Music(commands.Cog):
 
         else:
 
-            await interaction.response.send_message(
-                embed=MusicEmbeds.error(
-                    "ไม่มีเพลงกำลังเล่น"
-                ),
-                ephemeral=True
+            await self.safe_send_error(
+                interaction,
+                "ไม่มีเพลงกำลังเล่น"
             )
+
+
 
     @app_commands.command(
         name="resume",
@@ -109,12 +160,12 @@ class Music(commands.Cog):
 
         else:
 
-            await interaction.response.send_message(
-                embed=MusicEmbeds.error(
-                    "ไม่มีเพลงที่หยุดอยู่"
-                ),
-                ephemeral=True
+            await self.safe_send_error(
+                interaction,
+                "ไม่มีเพลงที่หยุดอยู่"
             )
+
+
 
     @app_commands.command(
         name="skip",
@@ -133,12 +184,12 @@ class Music(commands.Cog):
 
         else:
 
-            await interaction.response.send_message(
-                embed=MusicEmbeds.error(
-                    "ไม่มีเพลงให้ข้าม"
-                ),
-                ephemeral=True
+            await self.safe_send_error(
+                interaction,
+                "ไม่มีเพลงให้ข้าม"
             )
+
+
 
     @app_commands.command(
         name="stop",
@@ -149,7 +200,10 @@ class Music(commands.Cog):
         interaction: discord.Interaction
     ):
 
-        if await self.player.stop(interaction.guild):
+
+        if await self.player.stop(
+            interaction.guild
+        ):
 
             await interaction.response.send_message(
                 embed=MusicEmbeds.stopped()
@@ -157,12 +211,12 @@ class Music(commands.Cog):
 
         else:
 
-            await interaction.response.send_message(
-                embed=MusicEmbeds.error(
-                    "บอทยังไม่ได้อยู่ในห้องเสียง"
-                ),
-                ephemeral=True
+            await self.safe_send_error(
+                interaction,
+                "บอทยังไม่ได้อยู่ในห้องเสียง"
             )
+
+
 
     @app_commands.command(
         name="queue",
@@ -173,11 +227,15 @@ class Music(commands.Cog):
         interaction: discord.Interaction
     ):
 
-        songs = self.queue.get_queue(interaction.guild.id)
+        songs = self.queue.get_queue(
+            interaction.guild.id
+        )
 
         await interaction.response.send_message(
             embed=MusicEmbeds.queue(songs)
         )
+
+
 
     @app_commands.command(
         name="nowplaying",
@@ -188,18 +246,29 @@ class Music(commands.Cog):
         interaction: discord.Interaction
     ):
 
-        song = self.player.current(interaction.guild.id)
+
+        song = self.player.current(
+            interaction.guild.id
+        )
+
 
         if song is None:
 
-            await interaction.response.send_message(
-                embed=MusicEmbeds.error(
-                    "ไม่มีเพลงกำลังเล่น"
-                ),
-                ephemeral=True
+            await self.safe_send_error(
+                interaction,
+                "ไม่มีเพลงกำลังเล่น"
             )
             return
+
 
         await interaction.response.send_message(
             embed=MusicEmbeds.now_playing(song)
         )
+
+
+
+async def setup(bot):
+
+    await bot.add_cog(
+        Music(bot)
+    )
