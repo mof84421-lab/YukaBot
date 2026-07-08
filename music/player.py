@@ -1,39 +1,20 @@
 import discord
 
 
-
 class MusicPlayer:
 
 
-    def __init__(
-        self,
-        bot,
-        queue
-    ):
+    def __init__(self, bot):
 
         self.bot = bot
 
-        self.queue = queue
 
 
+    async def stop(self, guild):
 
-    async def play_next(
-        self,
-        guild
-    ):
-
-        song = self.queue.remove()
+        voice = guild.voice_client
 
 
-        if song:
+        if voice:
 
-            voice = guild.voice_client
-
-
-            if voice:
-
-                voice.play(
-                    discord.FFmpegPCMAudio(
-                        song
-                    )
-                )
+            await voice.disconnect()
