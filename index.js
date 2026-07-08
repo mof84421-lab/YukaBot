@@ -3,9 +3,11 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const { DisTube } = require('distube');
+const { YouTubePlugin } = require('@distube/youtube'); // 👈 เพิ่มปลั๊กอินสำหรับดึงสตรีมเพลง
+const { SoundCloudPlugin } = require('@distube/soundcloud');
 
 // ==========================================
-// RENDER WEB SERVER (อัปเดตเป็นชื่อ YukaBot)
+// RENDER WEB SERVER
 // ==========================================
 const app = express();
 const port = process.env.PORT || 3000;
@@ -21,18 +23,19 @@ const client = new Client({
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.GuildMembers,
-    GatewayIntentBits.GuildVoiceStates 
+    GatewayIntentBits.GuildVoiceStates
   ]
 });
 
 client.commands = new Collection();
 
 // ==========================================
-// ตั้งค่าระบบเพลง DISTUBE
+// ตั้งค่าระบบเพลง DISTUBE (อัปเดตเวอร์ชันใหม่)
 // ==========================================
-client.distube = new DisTube(client, {    
-  emitNewSongOnly: true,  
-  nsfw: false             
+client.distube = new DisTube(client, {
+  emitNewSongOnly: true,
+  nsfw: false,
+  plugins: [new YouTubePlugin(), new SoundCloudPlugin()] // 👈 ใส่ปลั๊กอินเพื่อให้เปิดเพลงไม่ติดขัด
 });
 
 client.distube.on('playSong', (queue, song) => {
