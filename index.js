@@ -1,53 +1,45 @@
 const { Client, GatewayIntentBits, Collection } = require('discord.js');
-const express = require('express');
+const { DisTube } = require('distube');
+const { YouTubePlugin } = require('@distube/youtube');
 const fs = require('fs');
 const path = require('path');
-const { DisTube } = require('distube');
-const { YouTubePlugin } = require('@distube/youtube'); // 👈 เพิ่มปลั๊กอินสำหรับดึงสตรีมเพลง
-const { SoundCloudPlugin } = require('@distube/soundcloud');
+require('dotenv').config();
 
-// ==========================================
-// RENDER WEB SERVER
-// ==========================================
-const app = express();
-const port = process.env.PORT || 3000;
-app.get('/', (req, res) => res.send('🤖 YukaBot ออนไลน์พร้อมระบบเพลงและมัลติฟังก์ชันบน Render แล้ว!'));
-app.listen(port, () => console.log(`[Server] YukaBot Port: ${port}`));
-
-// ==========================================
-// DISCORD CLIENT SETUP
-// ==========================================
+// สร้าง Client สำหรับเชื่อมต่อ Discord
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.GuildVoiceStates,
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.GuildMembers,
-    GatewayIntentBits.GuildVoiceStates
+    GatewayIntentBits.GuildPresences
   ]
 });
 
-client.commands = new Collection();
-
-// ==========================================
-// ตั้งค่าระบบเพลง DISTUBE (อัปเดตเวอร์ชันใหม่)
-// ==========================================
+// ตั้งค่าระบบเพลง DisTube
 client.distube = new DisTube(client, {
+  leaveOnStop: true,
   emitNewSongOnly: true,
-  nsfw: false,
-  plugins: [new YouTubePlugin(), new SoundCloudPlugin()] // 👈 ใส่ปลั๊กอินเพื่อให้เปิดเพลงไม่ติดขัด
+  emitAddSongWhenCreatingQueue: false,
+  emitAddListWhenCreatingQueue: false,
+  plugins: [new YouTubePlugin()]
 });
 
-client.distube.on('playSong', (queue, song) => {
-  queue.textChannel.send(`🎶 **YukaBot กำลังเล่น:** **${song.name}** - \`${song.formattedDuration}\`\n👤 ขอโดย: ${song.user}`);
+// เปิด Server ขนานสำหรับรันบน Render (Port 10000)
+const http = require('http');
+const server = http.createServer((req, res) => {
+  res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+  res.end('YukaBot ออนไลน์อยู่บน Render เรียบร้อยแล้วครับ! 🤖');
 });
 
-client.distube.on('addSong', (queue, song) => {
-  queue.textChannel.send(`✅ เพิ่มเข้าคิว YukaBot แล้ว: **${song.name}** โดยคุณ ${song.user}`);
+const PORT = process.env.PORT || 10000;
+server.listen(PORT, () => {
+  console.log(`[Server] YukaBot Port: ${PORT}`);
 });
 
 // ==========================================
-// โหลด EVENTS HANDLER
+// 🔄 โหลดยก EVENTS HANDLER (แก้ไขระบบคัดกรอง)
 // ==========================================
 const eventsPath = path.join(__dirname, 'events');
 const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js'));
@@ -55,6 +47,14 @@ const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js'
 for (const file of eventFiles) {
   const filePath = path.join(eventsPath, file);
   const event = require(filePath);
+  
+  // 🔥 ระบบตัวกรองป้องกันบอทค้าง: 
+  // ถ้าไฟล์ไหนไม่มีรูปแบบโครงสร้าง Event ที่ถูกต้อง (เช่น ไม่มี name หรือไม่มี execute) ให้ข้ามทันที
+  if (!event || !event.name || typeof event.execute !== 'function') {
+    console.log(`[System Info] ข้ามการโหลดไฟล์เนื่องจากไม่ใช่โครงสร้าง Event: ${file}`);
+    continue; 
+  }
+
   if (event.once) {
     client.once(event.name, (...args) => event.execute(...args, client));
   } else {
@@ -62,4 +62,22 @@ for (const file of eventFiles) {
   }
 }
 
-client.login(process.env.TOKEN);
+// ==========================================
+// 🎵 โหลดระบบแจ้งเตือนเพลง DisTube
+// ==========================================
+client.distube
+  .on('playSong', (queue, song) => {
+    queue.textChannel.send(`🎶 กำลังเล่นเพลง: **${song.name}** - \`${song.formattedDuration}\`\nขอโดย: ${song.user}`);
+  })
+  .on('addSong', (queue, song) => {
+    queue.textChannel.send(`✅ เพิ่มเพลง **${song.name}** เข้าในคิวแล้วครับ!`);
+  })
+  .on('error', (channel, e) => {
+    console.error(e);
+    if (channel) channel.send(`❌ เกิดข้อผิดพลาดในระบบเพลง: ${e.message.slice(0, 100)}`);
+  });
+
+// เข้าสู่ระบบด้วย Token
+client.login(process.env.TOKEN).catch(err => {
+  console.error('[Login Error] ไม่สามารถเชื่อมต่อกับ Discord ได้ ตรวจสอบ TOKEN อีกครั้ง:', err);
+});
