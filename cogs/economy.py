@@ -10,31 +10,26 @@ from database.database import (
 )
 
 
-DATABASE = "database/users.db"
+DATABASE="database/users.db"
 
 
 
 class Economy(commands.Cog):
 
 
-    def __init__(self, bot):
+    def __init__(self,bot):
 
-        self.bot = bot
+        self.bot=bot
 
 
 
     @app_commands.command(
-
         name="balance",
-
         description="ดูเงิน"
-
     )
     async def balance(
-
         self,
         interaction:discord.Interaction
-
     ):
 
 
@@ -43,7 +38,7 @@ class Economy(commands.Cog):
         )
 
 
-        data = await get_user(
+        data=await get_user(
             interaction.user.id
         )
 
@@ -57,17 +52,12 @@ class Economy(commands.Cog):
 
 
     @app_commands.command(
-
         name="daily",
-
         description="รับเงินรายวัน"
-
     )
     async def daily(
-
         self,
         interaction:discord.Interaction
-
     ):
 
 
@@ -76,8 +66,7 @@ class Economy(commands.Cog):
         )
 
 
-        reward = 500
-
+        reward=500
 
 
         async with aiosqlite.connect(
@@ -86,18 +75,17 @@ class Economy(commands.Cog):
 
 
             await db.execute(
+                """
+                UPDATE users
 
-            """
-            UPDATE users
-            SET money=money+?
-            WHERE user_id=?
-            """,
+                SET money=money+?
 
-            (
-                reward,
-                interaction.user.id
-            )
-
+                WHERE user_id=?
+                """,
+                (
+                    reward,
+                    interaction.user.id
+                )
             )
 
 
@@ -107,31 +95,33 @@ class Economy(commands.Cog):
 
         await interaction.response.send_message(
 
-            f"🎁 รับเงิน Daily +{reward}"
+            f"🎁 ได้รับเงิน {reward}"
 
         )
 
 
 
-
     @app_commands.command(
-
         name="pay",
-
         description="โอนเงิน"
-
     )
     async def pay(
-
         self,
-
         interaction:discord.Interaction,
-
         member:discord.Member,
-
         amount:int
-
     ):
+
+
+        if amount <= 0:
+
+            await interaction.response.send_message(
+                "❌ จำนวนเงินไม่ถูกต้อง",
+                ephemeral=True
+            )
+
+            return
+
 
 
         await create_user(
@@ -168,34 +158,32 @@ class Economy(commands.Cog):
 
 
             await db.execute(
+                """
+                UPDATE users
 
-            """
-            UPDATE users
-            SET money=money-?
-            WHERE user_id=?
-            """,
+                SET money=money-?
 
-            (
-                amount,
-                interaction.user.id
-            )
-
+                WHERE user_id=?
+                """,
+                (
+                    amount,
+                    interaction.user.id
+                )
             )
 
 
             await db.execute(
+                """
+                UPDATE users
 
-            """
-            UPDATE users
-            SET money=money+?
-            WHERE user_id=?
-            """,
+                SET money=money+?
 
-            (
-                amount,
-                member.id
-            )
-
+                WHERE user_id=?
+                """,
+                (
+                    amount,
+                    member.id
+                )
             )
 
 
