@@ -36,7 +36,8 @@ class YukaBot(commands.Bot):
 
     async def setup_hook(self):
 
-        await setup_database()
+        await self.tree.sync()
+print("Slash Commands Synced")
 
 
         for file in os.listdir("./cogs"):
