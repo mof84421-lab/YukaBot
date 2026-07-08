@@ -44,19 +44,24 @@ class YukaBot(commands.Bot):
             intents=intents
         )
 
-        # ป้องกัน Sync Command ซ้ำ
-        self.synced = False
-
 
     async def setup_hook(self):
 
         # Database
+
         try:
+
             await setup_database()
-            print("✅ Database Ready")
+
+            print(
+                "✅ Database Ready"
+            )
 
         except Exception as e:
-            print(f"❌ Database Error: {e}")
+
+            print(
+                f"❌ Database Error: {e}"
+            )
 
 
         # Load Cogs
@@ -85,29 +90,8 @@ class YukaBot(commands.Bot):
                         )
 
 
+
     async def on_ready(self):
-
-        # Sync Slash Commands แค่ครั้งเดียว
-
-        if not self.synced:
-
-            try:
-
-                synced = await self.tree.sync()
-
-                print(
-                    f"✅ Sync Commands สำเร็จ {len(synced)} คำสั่ง"
-                )
-
-                self.synced = True
-
-
-            except Exception as e:
-
-                print(
-                    f"❌ Sync Error: {e}"
-                )
-
 
         print(
 f"""
@@ -128,6 +112,8 @@ Servers:
         )
 
 
+        # เปลี่ยนสถานะครั้งเดียว
+
         await self.change_presence(
 
             activity=discord.Game(
@@ -135,6 +121,7 @@ Servers:
             )
 
         )
+
 
 
 # =========================
@@ -146,7 +133,7 @@ bot = YukaBot()
 
 
 # =========================
-# Test Slash Command
+# Test Command
 # =========================
 
 @bot.tree.command(
@@ -173,35 +160,9 @@ async def on_app_command_error(
     error
 ):
 
-    if isinstance(
-        error,
-        discord.app_commands.MissingPermissions
-    ):
-
-        message = (
-            "❌ คุณไม่มีสิทธิ์ใช้คำสั่งนี้"
-        )
-
-
-    elif isinstance(
-        error,
-        discord.app_commands.CommandOnCooldown
-    ):
-
-        message = (
-            "⏳ กรุณารอสักครู่ก่อนใช้อีกครั้ง"
-        )
-
-
-    else:
-
-        logging.error(
-            f"Command Error: {error}"
-        )
-
-        message = (
-            "❌ เกิดข้อผิดพลาดของระบบ"
-        )
+    logging.error(
+        f"Command Error: {error}"
+    )
 
 
     try:
@@ -209,14 +170,14 @@ async def on_app_command_error(
         if interaction.response.is_done():
 
             await interaction.followup.send(
-                message,
+                "❌ เกิดข้อผิดพลาด",
                 ephemeral=True
             )
 
         else:
 
             await interaction.response.send_message(
-                message,
+                "❌ เกิดข้อผิดพลาด",
                 ephemeral=True
             )
 
@@ -235,8 +196,9 @@ async def on_app_command_error(
 
 async def main():
 
-    # Delay ป้องกัน Render Restart แล้วยิง API ทันที
-    await asyncio.sleep(5)
+    # กัน Render Restart แล้วยิงทันที
+
+    await asyncio.sleep(10)
 
 
     async with bot:
