@@ -2,85 +2,41 @@ import discord
 from discord.ext import commands
 from openai import OpenAI
 import os
-import json
 
 
-client = OpenAI(
-    api_key=os.getenv("OPENAI_API_KEY")
+client=OpenAI(
+    api_key=os.getenv(
+        "OPENAI_API_KEY"
+    )
 )
 
 
-class YukaAI(commands.Cog):
+class AI(commands.Cog):
 
-    def __init__(self, bot):
-        self.bot = bot
-
-
-    @discord.app_commands.command(
-        name="ask",
-        description="ถาม Yuka AI"
-    )
-    async def ask(
-        self,
-        interaction: discord.Interaction,
-        question: str
-    ):
-
-        await interaction.response.defer()
+    def __init__(self,bot):
+        self.bot=bot
 
 
-        user = interaction.user.name
+    @commands.command()
+    async def ask(self,ctx,*,text):
+
+        response=client.chat.completions.create(
+
+            model="gpt-4.1-mini",
+
+            messages=[
+                {
+                "role":"user",
+                "content":text
+                }
+            ]
+        )
 
 
-        prompt = f"""
-คุณคือ Yuka AI
-เป็นผู้ช่วยใน Discord
-
-บุคลิก:
-- เป็นมิตร
-- สุภาพ
-- ตอบภาษาไทย
-- ช่วยเหลือสมาชิก
-
-ผู้ใช้ชื่อ {user}
-
-คำถาม:
-{question}
-"""
-
-
-        try:
-
-            result = client.chat.completions.create(
-
-                model="gpt-4o-mini",
-
-                messages=[
-                    {
-                        "role":"system",
-                        "content":prompt
-                    }
-                ]
-
-            )
-
-
-            answer = result.choices[0].message.content
-
-
-            await interaction.followup.send(
-                f"🤖 **Yuka:**\n{answer}"
-            )
-
-
-        except Exception as e:
-
-            await interaction.followup.send(
-                f"❌ Error:\n{e}"
-            )
-
+        await ctx.send(
+            response.choices[0].message.content
+        )
 
 
 async def setup(bot):
-
-    await bot.add_cog(YukaAI(bot))
+    await bot.add_cog(AI(bot))
