@@ -1,51 +1,74 @@
-const { REST, Routes } = require('discord.js');
+const { REST, Routes, SlashCommandBuilder } = require('discord.js');
 
 module.exports = {
   name: 'ready',
   once: true,
   async execute(client) {
-    console.log(`[Bot] ออนไลน์แล้วในชื่อ: ${client.user.tag}`);
+    console.log(`[Online] ${client.user.tag} พร้อมใช้งานแล้วครับ! 🤖✨`);
 
-    // กำหนดค่าสเตตัสเท่ ๆ ให้ YukaBot
-    client.user.setActivity('🎶 พิมพ์ / เพื่อดูคำสั่งทั้งหมด', { type: 3 }); // Type 3 = Watching
-
-    // รายชื่อคำสั่ง Slash Commands ทั้งหมดของเซิร์ฟเวอร์
+    // ==========================================
+    // 📋 รวมชุดคำสั่ง (Slash Commands) ของทุกระบบ
+    // ==========================================
     const commands = [
-      { name: 'ping', description: 'เช็คความเร็วการตอบกลับของบอท' },
-      { name: 'setup-verify', description: 'สร้างปุ่มกดระบบยืนยันตัวตน' },
-      { name: 'setup-ticket', description: 'สร้างปุ่มเปิดตั๋วแจ้งปัญหาติดต่อแอดมิน' },
-      
-      // 🎵 เพิ่มคำสั่งระบบเพลงแบบ Slash Command
-      { 
-        name: 'play', 
-        description: 'เปิดเพลงจากชื่อหรือลิงก์ YouTube/SoundCloud',
-        options: [
-          {
-            name: 'song',
-            type: 3, // 3 คือประเภท String (ข้อความ)
-            description: 'พิมพ์ชื่อเพลง หรือ วางลิงก์เพลงที่ต้องการเปิด',
-            required: true
-          }
-        ]
-      },
-      { name: 'skip', description: 'ข้ามเพลงปัจจุบันที่กำลังเล่นอยู่' },
-      { name: 'stop', description: 'หยุดเล่นเพลงทั้งหมด ล้างคิว และให้บอทออกจากห้องเสียง' }
-    ];
+      // 🎵 1. ระบบเพลง (Music System)
+      new SlashCommandBuilder()
+        .setName('play')
+        .setDescription('เปิดเพลงจาก YouTube / SoundCloud')
+        .addStringOption(option => 
+          option.setName('song')
+            .setDescription('ชื่อเพลง หรือ ลิงก์เพลง')
+            .setRequired(true)),
+      new SlashCommandBuilder().setName('skip').setDescription('ข้ามเพลงปัจจุบัน'),
+      new SlashCommandBuilder().setName('stop').setDescription('หยุดเล่นเพลงและออกจากห้องเสียง'),
 
+      // 🎰 2. ระบบคาสิโน (Casino System)
+      new SlashCommandBuilder().setName('money').setDescription('เช็คจำนวนเงินของคุณ'),
+      new SlashCommandBuilder().setName('work').setDescription('ทำงานหาเงินประจำวัน'),
+      new SlashCommandBuilder()
+        .setName('slots')
+        .setDescription('เล่นสล็อตแมชชีนเสี่ยงโชค')
+        .addIntegerOption(option => 
+          option.setName('bet')
+            .setDescription('จำนวนเงินที่ต้องการเดิมพัน')
+            .setRequired(true)),
+
+      // 📊 3. ระบบเลเวล (Level System)
+      new SlashCommandBuilder().setName('rank').setDescription('ดูการ์ดเลเวลและอันดับของคุณ'),
+      new SlashCommandBuilder().setName('leaderboard').setDescription('ดูอันดับผู้เล่นที่เลเวลสูงที่สุดในเซิร์ฟเวอร์'),
+
+      // 💤 4. ระบบ AFK (AFK System)
+      new SlashCommandBuilder()
+        .setName('afk')
+        .setDescription('ตั้งสถานะไม่อยู่หน้าจอ (AFK)')
+        .addStringOption(option => 
+          option.setName('reason')
+            .setDescription('เหตุผลที่ไม่อยู่')
+            .setRequired(false)),
+
+      // 🎫 5. ระบบตั๋วช่วยเหลือ (Ticket System)
+      new SlashCommandBuilder().setName('setup-ticket').setDescription('ตั้งค่าปุ่มกดสร้างตั๋วติดต่อทีมงาน (สำหรับผู้ดูแล)'),
+
+      // 🎉 6. ระบบแจกของ (Giveaway System)
+      new SlashCommandBuilder().setName('giveaway').setDescription('เริ่มกิจกรรมสุ่มแจกรางวัลในเซิร์ฟเวอร์')
+    ].map(command => command.toJSON());
+
+    // ==========================================
+    // 🚀 ยิงข้อมูลคำสั่งทั้งหมดขึ้นระบบ Discord หลังบ้าน
+    // ==========================================
     const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
 
     try {
-      console.log('[Deploy] กำลังอัปเดตคำสั่ง (Slash Commands) ทั้งหมดไปยัง Discord...');
-      
-      // อัปเดตคำสั่งแบบ Global (ใช้ได้ทุกเซิร์ฟเวอร์ที่บอทอยู่)
+      console.log('[System] กำลังลงทะเบียนคำสั่งสแลชทั้งหมด...');
+
+      // ส่งคำสั่งแบบ Global (ใช้งานได้ทุกเซิร์ฟเวอร์ที่บอทอยู่)
       await rest.put(
         Routes.applicationCommands(client.user.id),
         { body: commands }
       );
 
-      console.log('[Deploy] อัปเดตคำสั่งทั้งหมดเสร็จสิ้น! พร้อมใช้งานแล้ว 🎉');
+      console.log('[System] ลงทะเบียนคำสั่งสแลชสำเร็จและพร้อมใช้งานครบทุกระบบแล้ว! 🎉');
     } catch (error) {
-      console.error('[Deploy Error] เกิดข้อผิดพลาดในการลงทะเบียนคำสั่ง:', error);
+      console.error('[Error] เกิดข้อผิดพลาดในการลงทะเบียนคำสั่ง:', error);
     }
-  },
+  }
 };
