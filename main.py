@@ -14,9 +14,7 @@ from database.database import setup_database
 # Logging System
 # =========================
 
-# สร้างโฟลเดอร์ logs อัตโนมัติ
 os.makedirs("logs", exist_ok=True)
-
 
 logging.basicConfig(
     level=logging.INFO,
@@ -46,14 +44,23 @@ class YukaBot(commands.Bot):
             intents=intents
         )
 
+        # ป้องกัน Sync Command ซ้ำ
+        self.synced = False
+
 
     async def setup_hook(self):
 
         # Database
-        await setup_database()
+        try:
+            await setup_database()
+            print("✅ Database Ready")
+
+        except Exception as e:
+            print(f"❌ Database Error: {e}")
 
 
         # Load Cogs
+
         if os.path.exists("./cogs"):
 
             for file in os.listdir("./cogs"):
@@ -80,22 +87,26 @@ class YukaBot(commands.Bot):
 
     async def on_ready(self):
 
-        # Sync Slash Commands
+        # Sync Slash Commands แค่ครั้งเดียว
 
-        try:
+        if not self.synced:
 
-            synced = await self.tree.sync()
+            try:
 
-            print(
-                f"✅ Sync Commands สำเร็จ {len(synced)} คำสั่ง"
-            )
+                synced = await self.tree.sync()
+
+                print(
+                    f"✅ Sync Commands สำเร็จ {len(synced)} คำสั่ง"
+                )
+
+                self.synced = True
 
 
-        except Exception as e:
+            except Exception as e:
 
-            print(
-                f"❌ Sync Error: {e}"
-            )
+                print(
+                    f"❌ Sync Error: {e}"
+                )
 
 
         print(
@@ -135,7 +146,7 @@ bot = YukaBot()
 
 
 # =========================
-# Test Command
+# Test Slash Command
 # =========================
 
 @bot.tree.command(
@@ -223,6 +234,10 @@ async def on_app_command_error(
 # =========================
 
 async def main():
+
+    # Delay ป้องกัน Render Restart แล้วยิง API ทันที
+    await asyncio.sleep(5)
+
 
     async with bot:
 
