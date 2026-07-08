@@ -36,38 +36,61 @@ class YukaBot(commands.Bot):
 
     async def setup_hook(self):
 
-        await self.tree.sync()
-print("Slash Commands Synced")
+        # เริ่ม Database
+        await setup_database()
 
 
-        for file in os.listdir("./cogs"):
+        # โหลด Cogs
+        if os.path.exists("./cogs"):
 
-            if file.endswith(".py"):
+            for file in os.listdir("./cogs"):
 
-                try:
+                if file.endswith(".py"):
 
-                    await self.load_extension(
-                        f"cogs.{file[:-3]}"
-                    )
+                    try:
 
-                    print(
-                        f"Loaded {file}"
-                    )
+                        await self.load_extension(
+                            f"cogs.{file[:-3]}"
+                        )
 
-                except Exception as e:
+                        print(
+                            f"✅ Loaded {file}"
+                        )
 
-                    print(
-                        f"Error {file}: {e}"
-                    )
+
+                    except Exception as e:
+
+                        print(
+                            f"❌ Error loading {file}: {e}"
+                        )
 
 
 
     async def on_ready(self):
 
+        # Sync Slash Commands
+
+        try:
+
+            synced = await self.tree.sync()
+
+            print(
+                f"✅ Sync Commands สำเร็จ {len(synced)} คำสั่ง"
+            )
+
+
+        except Exception as e:
+
+            print(
+                f"❌ Sync Error: {e}"
+            )
+
+
+
         print(
             f"""
 =========================
-YukaBot Online
+🤖 YukaBot Online
 
 Name:
 {self.user}
@@ -83,10 +106,13 @@ Servers:
         )
 
 
+
         await self.change_presence(
+
             activity=discord.Game(
                 name="/help | YukaBot"
             )
+
         )
 
 
@@ -95,15 +121,115 @@ bot = YukaBot()
 
 
 
+# -------------------------
+# Test Command
+# -------------------------
+
 @bot.tree.command(
     name="ping",
     description="ตรวจสอบสถานะบอท"
 )
-async def ping(interaction):
+async def ping(
+    interaction: discord.Interaction
+):
 
     await interaction.response.send_message(
-        f"Pong! {round(bot.latency*1000)}ms"
+
+        f"🏓 Pong! {round(bot.latency * 1000)}ms"
+
     )
+
+
+
+# -------------------------
+# Error Handler
+# -------------------------
+
+@bot.tree.error
+async def on_app_command_error(
+
+    interaction: discord.Interaction,
+
+    error
+
+):
+
+
+    if isinstance(
+
+        error,
+
+        discord.app_commands.MissingPermissions
+
+    ):
+
+        message = (
+            "❌ คุณไม่มีสิทธิ์ใช้คำสั่งนี้"
+        )
+
+
+
+    elif isinstance(
+
+        error,
+
+        discord.app_commands.CommandOnCooldown
+
+    ):
+
+        message = (
+            "⏳ กรุณารอสักครู่ก่อนใช้อีกครั้ง"
+        )
+
+
+
+    else:
+
+
+        print(
+            f"Command Error: {error}"
+        )
+
+
+        message = (
+            "❌ เกิดข้อผิดพลาดของระบบ"
+        )
+
+
+
+    try:
+
+        if interaction.response.is_done():
+
+
+            await interaction.followup.send(
+
+                message,
+
+                ephemeral=True
+
+            )
+
+
+        else:
+
+
+            await interaction.response.send_message(
+
+                message,
+
+                ephemeral=True
+
+            )
+
+
+    except Exception as e:
+
+        print(
+            f"Error Handler Failed: {e}"
+        )
+
+
 
 
 
