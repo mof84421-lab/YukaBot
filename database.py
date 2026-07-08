@@ -4,13 +4,14 @@ import sqlite3
 DB = "yuka.db"
 
 
+
 def connect():
 
     return sqlite3.connect(DB)
 
 
 
-def create():
+def setup():
 
     con = connect()
 
@@ -19,12 +20,22 @@ def create():
 
     cur.execute("""
     CREATE TABLE IF NOT EXISTS memory(
-
         user_id TEXT,
         text TEXT
-
     )
     """)
+
+
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS users(
+        user_id TEXT PRIMARY KEY,
+        money INTEGER DEFAULT 0,
+        xp INTEGER DEFAULT 0,
+        level INTEGER DEFAULT 1
+    )
+    """)
+
 
 
     con.commit()
@@ -33,7 +44,7 @@ def create():
 
 
 
-def add_memory(user_id,text):
+def add_memory(uid,text):
 
     con = connect()
 
@@ -43,7 +54,7 @@ def add_memory(user_id,text):
     cur.execute(
         "INSERT INTO memory VALUES (?,?)",
         (
-            user_id,
+            uid,
             text
         )
     )
@@ -55,7 +66,7 @@ def add_memory(user_id,text):
 
 
 
-def get_memory(user_id):
+def get_memory(uid):
 
     con = connect()
 
@@ -64,7 +75,7 @@ def get_memory(user_id):
 
     cur.execute(
         "SELECT text FROM memory WHERE user_id=?",
-        (user_id,)
+        (uid,)
     )
 
 
@@ -75,5 +86,98 @@ def get_memory(user_id):
 
 
     return [
-        x[0] for x in data
+        x[0]
+        for x in data
     ]
+
+
+
+def create_user(uid):
+
+    con = connect()
+
+    cur = con.cursor()
+
+
+    cur.execute(
+        """
+        INSERT OR IGNORE INTO users
+        (user_id)
+        VALUES (?)
+        """,
+        (uid,)
+    )
+
+
+    con.commit()
+
+    con.close()
+
+
+
+def get_user(uid):
+
+    create_user(uid)
+
+
+    con = connect()
+
+    cur = con.cursor()
+
+
+    cur.execute(
+        """
+        SELECT money,xp,level
+        FROM users
+        WHERE user_id=?
+        """,
+        (uid,)
+    )
+
+
+    data = cur.fetchone()
+
+
+    con.close()
+
+
+    return data
+
+
+
+def add_xp(uid,amount):
+
+    money,xp,level = get_user(uid)
+
+
+    xp += amount
+
+
+    if xp >= level*100:
+
+        xp = 0
+        level += 1
+
+
+    con = connect()
+
+    cur = con.cursor()
+
+
+    cur.execute(
+        """
+        UPDATE users
+        SET xp=?, level=?
+        WHERE user_id=?
+        """,
+        (
+            xp,
+            level,
+            uid
+        )
+    )
+
+
+    con.commit()
+
+    con.close()
