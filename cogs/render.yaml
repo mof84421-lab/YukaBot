@@ -2,6 +2,16 @@ services:
   - type: worker
     name: yukabot
     runtime: python
+    plan: free
+
     buildCommand: |
       pip install -r requirements.txt
+
     startCommand: python main.py
+
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+
+      - key: NIXPACKS_PKGS
+        value: ffmpeg
