@@ -3,21 +3,21 @@ class MusicQueue:
 
     def __init__(self):
 
-        self.queue = []
+        self.songs = []
 
 
 
     def add(self, song):
 
-        self.queue.append(song)
+        self.songs.append(song)
 
 
 
-    def remove(self):
+    def next(self):
 
-        if self.queue:
+        if self.songs:
 
-            return self.queue.pop(0)
+            return self.songs.pop(0)
 
 
         return None
@@ -26,10 +26,4 @@ class MusicQueue:
 
     def clear(self):
 
-        self.queue.clear()
-
-
-
-    def get_all(self):
-
-        return self.queue
+        self.songs.clear()
