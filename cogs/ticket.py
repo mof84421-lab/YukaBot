@@ -1,8 +1,6 @@
 import discord
-
 from discord.ext import commands
 from discord import app_commands
-
 
 
 class Ticket(commands.Cog):
@@ -12,10 +10,9 @@ class Ticket(commands.Cog):
         self.bot = bot
 
 
-
     @app_commands.command(
         name="ticket",
-        description="สร้าง Ticket"
+        description="เปิด Ticket ติดต่อทีมงาน"
     )
     async def ticket(
         self,
@@ -38,7 +35,6 @@ class Ticket(commands.Cog):
             )
 
 
-
         channel = await guild.create_text_channel(
 
             name=f"ticket-{interaction.user.name}",
@@ -49,22 +45,37 @@ class Ticket(commands.Cog):
 
 
         await channel.set_permissions(
+
             interaction.user,
-            read_messages=True,
+
+            view_channel=True,
+
             send_messages=True
+
+        )
+
+
+        embed = discord.Embed(
+
+            title="🎫 Ticket เปิดแล้ว",
+
+            description=
+            f"""
+ผู้สร้าง:
+{interaction.user.mention}
+
+ทีมงานจะมาตอบกลับเร็ว ๆ นี้
+""",
+
+            color=0x00ffff
+
         )
 
 
         await channel.send(
 
-            f"""
-🎫 Ticket เปิดแล้ว
+            embed=embed
 
-ผู้สร้าง:
-{interaction.user.mention}
-
-ใช้ช่องนี้ติดต่อทีมงาน
-"""
         )
 
 
@@ -73,36 +84,51 @@ class Ticket(commands.Cog):
             f"✅ สร้าง Ticket แล้ว {channel.mention}",
 
             ephemeral=True
+
         )
 
 
 
     @app_commands.command(
+
         name="close",
+
         description="ปิด Ticket"
+
     )
     async def close(
 
         self,
-        interaction:discord.Interaction
+
+        interaction: discord.Interaction
 
     ):
 
 
-        if "ticket-" in interaction.channel.name:
+        if interaction.channel.name.startswith(
+            "ticket-"
+        ):
+
 
             await interaction.response.send_message(
-                "🔒 ปิด Ticket"
+
+                "🔒 ปิด Ticket แล้ว"
+
             )
+
 
             await interaction.channel.delete()
 
 
         else:
 
+
             await interaction.response.send_message(
-                "❌ ใช้คำสั่งนี้ใน Ticket เท่านั้น",
+
+                "❌ ใช้คำสั่งนี้ในห้อง Ticket เท่านั้น",
+
                 ephemeral=True
+
             )
 
 
