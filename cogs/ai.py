@@ -6,11 +6,8 @@ from config import AI_NAME, PERSONALITY
 
 class AI(commands.Cog):
 
-
-    def __init__(self,bot):
-
+    def __init__(self, bot):
         self.bot = bot
-
 
 
     @app_commands.command(
@@ -23,7 +20,6 @@ class AI(commands.Cog):
         message:str
     ):
 
-
         await interaction.response.defer()
 
 
@@ -32,18 +28,16 @@ class AI(commands.Cog):
 
 {PERSONALITY}
 
-คุณถาม:
+คำถาม:
 {message}
 
 
-ตอนนี้ Yuka ยังใช้ AI Engine พื้นฐาน
-พร้อมเชื่อมต่อโมเดลจริงในขั้นต่อไป
+Yuka กำลังพัฒนา AI Engine
+สามารถเพิ่มโมเดล AI จริงได้ในอนาคต
 """
 
 
-        await interaction.followup.send(
-            answer
-        )
+        await interaction.followup.send(answer)
 
 
 
