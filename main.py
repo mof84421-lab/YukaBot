@@ -7,7 +7,8 @@ import asyncio
 load_dotenv()
 
 TOKEN = os.getenv("DISCORD_TOKEN")
-
+print("TOKEN FOUND:", TOKEN is not None)
+print("TOKEN LENGTH:", len(TOKEN) if TOKEN else 0)
 intents = discord.Intents.all()
 
 bot = commands.Bot(
