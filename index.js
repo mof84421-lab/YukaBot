@@ -1,6 +1,7 @@
 const { Client, GatewayIntentBits } = require('discord.js');
 const { DisTube } = require('distube');
 const { YouTubePlugin } = require('@distube/youtube');
+const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
 
@@ -37,28 +38,32 @@ server.listen(PORT, () => {
 });
 
 // ==========================================
-// 🔄 โหลดระบบ EVENTS HANDLER (เจาะจงเฉพาะไฟล์หลัก)
+// 🔄 โหลดระบบ EVENTS HANDLER (ระบบกรองเซฟตี้ขั้นสุด)
 // ==========================================
 const eventsPath = path.join(__dirname, 'events');
 
-// 🎯 ล็อกเป้าหมายโหลดเฉพาะ 2 ไฟล์นี้เท่านั้น ไฟล์อื่นในโฟลเดอร์จะไม่ถูกดึงมารันให้ค้าง
-const targetFiles = ['ready.js', 'interaction.js'];
+if (fs.existsSync(eventsPath)) {
+  const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js'));
 
-for (const fileName of targetFiles) {
-  try {
-    const filePath = path.join(eventsPath, fileName);
-    const event = require(filePath);
-    
-    if (event && event.name && typeof event.execute === 'function') {
-      if (event.once) {
-        client.once(event.name, (...args) => event.execute(...args, client));
+  for (const file of eventFiles) {
+    try {
+      const filePath = path.join(eventsPath, file);
+      const event = require(filePath);
+      
+      // 🔥 ตรวจสอบโครงสร้าง: ต้องมี name และเป็น Event จริง ๆ ถึงจะโหลด เพื่อไม่ให้บอทค้างหรือออฟไลน์
+      if (event && event.name && typeof event.execute === 'function') {
+        if (event.once) {
+          client.once(event.name, (...args) => event.execute(...args, client));
+        } else {
+          client.on(event.name, (...args) => event.execute(...args, client));
+        }
+        console.log(`[System] โหลดไฟล์ Event สำเร็จ: ${file}`);
       } else {
-        client.on(event.name, (...args) => event.execute(...args, client));
+        console.log(`[System Info] ข้ามการโหลดไฟล์ (ไม่ใช่ Event หลัก): ${file}`);
       }
-      console.log(`[System] โหลดไฟล์ Event สำเร็จ: ${fileName}`);
+    } catch (fileErr) {
+      console.log(`[Warning] ไม่สามารถอ่านไฟล์ ${file} ได้เนื่องจากโครงสร้างภายในขัดแย้ง`);
     }
-  } catch (error) {
-    console.log(`[Warning] ไม่สามารถโหลดไฟล์ ${fileName} ได้ หรือไม่มีไฟล์นี้อยู่จริง`);
   }
 }
 
