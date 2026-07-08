@@ -1,16 +1,14 @@
 import discord
 from discord.ext import commands
-import asyncio
-import os
 from dotenv import load_dotenv
+import os
+import asyncio
 
 load_dotenv()
 
 TOKEN = os.getenv("TOKEN")
 
-
 intents = discord.Intents.all()
-
 
 bot = commands.Bot(
     command_prefix="!",
@@ -18,51 +16,29 @@ bot = commands.Bot(
 )
 
 
-
-async def load_cogs():
-
-    cogs = [
-        "cogs.ai",
-        "cogs.memory",
-        "cogs.music",
-        "cogs.moderation",
-        "cogs.game"
-    ]
-
-
-    for cog in cogs:
-
-        try:
-            await bot.load_extension(cog)
-            print("Loaded:", cog)
-
-        except Exception as e:
-            print(
-                "Error:",
-                cog,
-                e
-            )
-
-
-
 @bot.event
 async def on_ready():
 
     print("===================")
-    print(
-        "Yuka Online:",
-        bot.user
-    )
+    print(f"YukaBot Online : {bot.user}")
     print("===================")
 
+    try:
+        await bot.tree.sync()
+        print("Slash Commands Ready")
+    except Exception as e:
+        print(e)
 
-    await bot.tree.sync()
 
+async def load_cogs():
 
-    print(
-        "Slash Commands Ready"
-    )
+    for file in os.listdir("./cogs"):
 
+        if file.endswith(".py"):
+
+            await bot.load_extension(
+                f"cogs.{file[:-3]}"
+            )
 
 
 async def main():
@@ -71,10 +47,7 @@ async def main():
 
         await load_cogs()
 
-        await bot.start(
-            TOKEN
-        )
-
+        await bot.start(TOKEN)
 
 
 asyncio.run(main())
