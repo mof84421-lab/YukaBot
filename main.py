@@ -1,62 +1,55 @@
-import os
-import asyncio
 import discord
 from discord.ext import commands
+import os
 from dotenv import load_dotenv
 
 load_dotenv()
 
 TOKEN = os.getenv("DISCORD_TOKEN")
 
-if not TOKEN:
-    raise RuntimeError("❌ ไม่พบ DISCORD_TOKEN ใน Environment Variables")
+intents = discord.Intents.all()
 
-intents = discord.Intents.default()
-intents.message_content = True
-intents.members = True
-
-bot = commands.Bot(command_prefix="!", intents=intents)
+bot = commands.Bot(
+    command_prefix="!",
+    intents=intents
+)
 
 
 @bot.event
 async def on_ready():
-    print("=" * 40)
-    print(f"✅ YukaBot Online: {bot.user}")
-    print("=" * 40)
+    print(f"ออนไลน์แล้ว: {bot.user}")
 
     try:
         synced = await bot.tree.sync()
-        print(f"✅ Sync Slash Commands: {len(synced)}")
+        print(f"Sync {len(synced)} commands")
     except Exception as e:
-        print(f"❌ Sync Error: {e}")
+        print(e)
 
 
-async def load_cogs():
-    if not os.path.isdir("cogs"):
-        print("⚠️ ไม่พบโฟลเดอร์ cogs")
-        return
+async def load_extensions():
 
-    for file in os.listdir("cogs"):
-        if file.endswith(".py"):
-            try:
-                await bot.load_extension(f"cogs.{file[:-3]}")
-                print(f"✅ โหลด {file} สำเร็จ")
-            except Exception as e:
-                print(f"❌ โหลด {file} ไม่สำเร็จ: {e}")
+    folders = [
+        "welcome",
+        "moderation",
+        "ticket",
+        "level",
+        "ai",
+        "music",
+        "help"
+    ]
+
+    for file in folders:
+        await bot.load_extension(
+            f"cogs.{file}"
+        )
 
 
 async def main():
+
     async with bot:
-        await load_cogs()
-
-        try:
-            await bot.start(TOKEN)
-        except discord.LoginFailure:
-            print("❌ Bot Token ไม่ถูกต้อง")
-        except discord.HTTPException as e:
-            print(f"❌ Discord HTTP Error: {e.status} - {e}")
-        except Exception as e:
-            print(f"❌ Error: {e}")
+        await load_extensions()
+        await bot.start(TOKEN)
 
 
+import asyncio
 asyncio.run(main())
