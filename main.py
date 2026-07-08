@@ -1,12 +1,13 @@
 import discord
 from discord.ext import commands
-import os
 import asyncio
+import os
 from dotenv import load_dotenv
 
 load_dotenv()
 
 TOKEN = os.getenv("TOKEN")
+
 
 intents = discord.Intents.all()
 
@@ -20,10 +21,7 @@ async def load_cogs():
 
     cogs = [
         "cogs.ai",
-        "cogs.memory",
-        "cogs.welcome",
-        "cogs.verify",
-        "cogs.moderation"
+        "cogs.memory"
     ]
 
     for cog in cogs:
@@ -35,11 +33,13 @@ async def load_cogs():
 @bot.event
 async def on_ready():
 
-    print(f"Yuka Online : {bot.user}")
+    print("================")
+    print("Yuka Online:", bot.user)
+    print("================")
 
     await bot.tree.sync()
 
-    print("Slash Commands Ready")
+    print("Slash Command Ready")
 
 
 
