@@ -30,9 +30,7 @@ client.commands = new Collection();
 // ==========================================
 // ตั้งค่าระบบเพลง DISTUBE
 // ==========================================
-client.distube = new DisTube(client, {
-  leaveOnEmpty: true,     
-  leaveOnFinish: false,    
+client.distube = new DisTube(client, {    
   emitNewSongOnly: true,  
   nsfw: false             
 });
