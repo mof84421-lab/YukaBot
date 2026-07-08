@@ -16,26 +16,18 @@ class Welcome(commands.Cog):
             name="welcome"
         )
 
-
         if channel:
 
+            embed=discord.Embed(
+                title="ยินดีต้อนรับ",
+                description=f"สวัสดี {member.mention}",
+                color=0x00ffff
+            )
+
             await channel.send(
-                f"🎉 ยินดีต้อนรับ {member.mention}"
+                embed=embed
             )
 
 
-        role = discord.utils.get(
-            member.guild.roles,
-            name="สมาชิก"
-        )
-
-
-        if role:
-
-            await member.add_roles(role)
-
-
-
 async def setup(bot):
-
     await bot.add_cog(Welcome(bot))
