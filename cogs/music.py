@@ -3,7 +3,6 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 
-from music.queue import MusicQueue
 from music.player import MusicPlayer
 
 
@@ -15,11 +14,8 @@ class Music(commands.Cog):
 
         self.bot = bot
 
-        self.queue = MusicQueue()
-
         self.player = MusicPlayer(
-            bot,
-            self.queue
+            bot
         )
 
 
@@ -28,12 +24,13 @@ class Music(commands.Cog):
 
         name="join",
 
-        description="เข้าห้องเสียง"
+        description="ให้บอทเข้าห้องเสียง"
 
     )
     async def join(
 
         self,
+
         interaction:discord.Interaction
 
     ):
@@ -41,59 +38,65 @@ class Music(commands.Cog):
 
         if interaction.user.voice:
 
+
             await interaction.user.voice.channel.connect()
 
 
             await interaction.response.send_message(
+
                 "🎵 เข้าห้องเสียงแล้ว"
+
             )
+
 
         else:
 
+
             await interaction.response.send_message(
-                "❌ คุณต้องอยู่ในห้องเสียงก่อน"
+
+                "❌ คุณต้องอยู่ในห้องเสียงก่อน",
+
+                ephemeral=True
+
             )
 
 
 
     @app_commands.command(
 
-        name="stop",
+        name="leave",
 
-        description="หยุดเพลง"
+        description="ให้บอทออกจากห้องเสียง"
 
     )
-    async def stop(
+    async def leave(
 
         self,
+
         interaction:discord.Interaction
 
     ):
 
 
-        voice = interaction.guild.voice_client
+        await self.player.stop(
+
+            interaction.guild
+
+        )
 
 
-        if voice:
+        await interaction.response.send_message(
 
-            await voice.disconnect()
+            "👋 ออกจากห้องเสียงแล้ว"
 
-
-            await interaction.response.send_message(
-                "⏹ หยุดเพลงแล้ว"
-            )
-
-
-        else:
-
-            await interaction.response.send_message(
-                "ไม่ได้อยู่ในห้องเสียง"
-            )
+        )
 
 
 
 async def setup(bot):
 
     await bot.add_cog(
+
         Music(bot)
+
     )
