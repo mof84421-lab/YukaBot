@@ -115,3 +115,91 @@ class Music(commands.Cog):
                 ),
                 ephemeral=True
             )
+
+    @app_commands.command(
+        name="skip",
+        description="ข้ามเพลง"
+    )
+    async def skip(
+        self,
+        interaction: discord.Interaction
+    ):
+
+        if self.player.skip(interaction.guild):
+
+            await interaction.response.send_message(
+                embed=MusicEmbeds.skipped()
+            )
+
+        else:
+
+            await interaction.response.send_message(
+                embed=MusicEmbeds.error(
+                    "ไม่มีเพลงให้ข้าม"
+                ),
+                ephemeral=True
+            )
+
+    @app_commands.command(
+        name="stop",
+        description="หยุดเพลง"
+    )
+    async def stop(
+        self,
+        interaction: discord.Interaction
+    ):
+
+        if await self.player.stop(interaction.guild):
+
+            await interaction.response.send_message(
+                embed=MusicEmbeds.stopped()
+            )
+
+        else:
+
+            await interaction.response.send_message(
+                embed=MusicEmbeds.error(
+                    "บอทยังไม่ได้อยู่ในห้องเสียง"
+                ),
+                ephemeral=True
+            )
+
+    @app_commands.command(
+        name="queue",
+        description="ดูคิวเพลง"
+    )
+    async def queue_cmd(
+        self,
+        interaction: discord.Interaction
+    ):
+
+        songs = self.queue.get_queue(interaction.guild.id)
+
+        await interaction.response.send_message(
+            embed=MusicEmbeds.queue(songs)
+        )
+
+    @app_commands.command(
+        name="nowplaying",
+        description="เพลงที่กำลังเล่น"
+    )
+    async def nowplaying(
+        self,
+        interaction: discord.Interaction
+    ):
+
+        song = self.player.current(interaction.guild.id)
+
+        if song is None:
+
+            await interaction.response.send_message(
+                embed=MusicEmbeds.error(
+                    "ไม่มีเพลงกำลังเล่น"
+                ),
+                ephemeral=True
+            )
+            return
+
+        await interaction.response.send_message(
+            embed=MusicEmbeds.now_playing(song)
+        )
