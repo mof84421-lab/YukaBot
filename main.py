@@ -1,54 +1,62 @@
+import os
+import asyncio
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
-import os
-import asyncio
 
 load_dotenv()
 
 TOKEN = os.getenv("DISCORD_TOKEN")
-print("TOKEN FOUND:", TOKEN is not None)
-print("TOKEN LENGTH:", len(TOKEN) if TOKEN else 0)
-intents = discord.Intents.all()
 
-bot = commands.Bot(
-    command_prefix="!",
-    intents=intents
-)
+if not TOKEN:
+    raise RuntimeError("❌ ไม่พบ DISCORD_TOKEN ใน Environment Variables")
+
+intents = discord.Intents.default()
+intents.message_content = True
+intents.members = True
+
+bot = commands.Bot(command_prefix="!", intents=intents)
 
 
 @bot.event
 async def on_ready():
-
-    print("===================")
-    print(f"YukaBot Online : {bot.user}")
-    print("===================")
+    print("=" * 40)
+    print(f"✅ YukaBot Online: {bot.user}")
+    print("=" * 40)
 
     try:
-        await bot.tree.sync()
-        print("Slash Commands Ready")
+        synced = await bot.tree.sync()
+        print(f"✅ Sync Slash Commands: {len(synced)}")
     except Exception as e:
-        print(e)
+        print(f"❌ Sync Error: {e}")
 
 
 async def load_cogs():
+    if not os.path.isdir("cogs"):
+        print("⚠️ ไม่พบโฟลเดอร์ cogs")
+        return
 
-    for file in os.listdir("./cogs"):
-
+    for file in os.listdir("cogs"):
         if file.endswith(".py"):
-
-            await bot.load_extension(
-                f"cogs.{file[:-3]}"
-            )
+            try:
+                await bot.load_extension(f"cogs.{file[:-3]}")
+                print(f"✅ โหลด {file} สำเร็จ")
+            except Exception as e:
+                print(f"❌ โหลด {file} ไม่สำเร็จ: {e}")
 
 
 async def main():
-
     async with bot:
-
         await load_cogs()
 
-        await bot.start(TOKEN)
+        try:
+            await bot.start(TOKEN)
+        except discord.LoginFailure:
+            print("❌ Bot Token ไม่ถูกต้อง")
+        except discord.HTTPException as e:
+            print(f"❌ Discord HTTP Error: {e.status} - {e}")
+        except Exception as e:
+            print(f"❌ Error: {e}")
 
 
 asyncio.run(main())
