@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits } = require('discord.js');
+const { Client, GatewayIntentBits, Collection } = require('discord.js');
 const { DisTube } = require('distube');
 const { YouTubePlugin } = require('@distube/youtube');
 const fs = require('fs');
@@ -38,7 +38,7 @@ server.listen(PORT, () => {
 });
 
 // ==========================================
-// 🔄 โหลดระบบ EVENTS HANDLER (ระบบกรองเซฟตี้ขั้นสุด)
+// 🔄 ระบบโหลดอัจฉริยะ: รันทุกระบบพร้อมกันโดยไม่ให้บอทแครช
 // ==========================================
 const eventsPath = path.join(__dirname, 'events');
 
@@ -48,21 +48,27 @@ if (fs.existsSync(eventsPath)) {
   for (const file of eventFiles) {
     try {
       const filePath = path.join(eventsPath, file);
-      const event = require(filePath);
+      const moduleData = require(filePath);
       
-      // 🔥 ตรวจสอบโครงสร้าง: ต้องมี name และเป็น Event จริง ๆ ถึงจะโหลด เพื่อไม่ให้บอทค้างหรือออฟไลน์
-      if (event && event.name && typeof event.execute === 'function') {
-        if (event.once) {
-          client.once(event.name, (...args) => event.execute(...args, client));
+      // 🎯 ถ้าไฟล์ไหนมีโครงสร้างเป็น Event หลัก (ready, interactionCreate) ให้ผูกระบบเข้า Discord
+      if (moduleData && moduleData.name && typeof moduleData.execute === 'function') {
+        if (moduleData.once) {
+          client.once(moduleData.name, (...args) => moduleData.execute(...args, client));
         } else {
-          client.on(event.name, (...args) => event.execute(...args, client));
+          client.on(moduleData.name, (...args) => moduleData.execute(...args, client));
         }
-        console.log(`[System] โหลดไฟล์ Event สำเร็จ: ${file}`);
+        console.log(`[Event Loaded] เชื่อมต่อระบบ Event สำเร็จ: ${file}`);
+      } 
+      // ⚙️ ถ้าเป็นไฟล์ระบบคำสั่งอื่น ๆ (Casino, Level, AFK) ให้สั่งรันทำงานเบื้องหลังไปเลย ไม่ต้องข้าม
+      else if (typeof moduleData === 'function') {
+        moduleData(client);
+        console.log(`[System Loaded] เปิดใช้งานระบบเสริมสำเร็จ: ${file}`);
       } else {
-        console.log(`[System Info] ข้ามการโหลดไฟล์ (ไม่ใช่ Event หลัก): ${file}`);
+        console.log(`[System Info] ไฟล์ระบบแบบดึงข้อมูลทั่วไปพร้อมใช้งาน: ${file}`);
       }
     } catch (fileErr) {
-      console.log(`[Warning] ไม่สามารถอ่านไฟล์ ${file} ได้เนื่องจากโครงสร้างภายในขัดแย้ง`);
+      // ป้องกันกรณีไฟล์บางตัวมีบั๊ก ให้ข้ามไปรันไฟล์อื่นต่อทันที บอทจะได้ไม่ออฟไลน์
+      console.log(`[Safe Guard] ข้ามข้อผิดพลาดในไฟล์ ${file} เพื่อป้องกันบอทล่ม: ${fileErr.message}`);
     }
   }
 }
