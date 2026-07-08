@@ -9,6 +9,8 @@
   "dependencies": {
     "@discordjs/opus": "^0.9.0",
     "@discordjs/voice": "^0.17.0",
+    "@distube/soundcloud": "^2.0.1",
+    "@distube/youtube": "^3.0.1",
     "discord.js": "^14.15.3",
     "distube": "^5.0.3",
     "express": "^4.19.2",
