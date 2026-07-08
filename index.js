@@ -1,11 +1,10 @@
-const { Client, GatewayIntentBits, Collection } = require('discord.js');
+const { Client, GatewayIntentBits } = require('discord.js');
 const { DisTube } = require('distube');
 const { YouTubePlugin } = require('@distube/youtube');
-const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
 
-// สร้าง Client สำหรับเชื่อมต่อ Discord
+// สร้าง Client สำหรับเชื่อมต่อ Discord (เปิดสิทธิ์ครบถ้วน)
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -17,7 +16,7 @@ const client = new Client({
   ]
 });
 
-// ตั้งค่าระบบเพลง DisTube (แก้ไขสำหรับ v5 เรียบร้อยแล้ว)
+// ตั้งค่าระบบเพลง DisTube (v5)
 client.distube = new DisTube(client, {
   emitNewSongOnly: true,
   emitAddSongWhenCreatingQueue: false,
@@ -38,26 +37,28 @@ server.listen(PORT, () => {
 });
 
 // ==========================================
-// 🔄 โหลดยก EVENTS HANDLER (มีระบบคัดกรอง)
+// 🔄 โหลดระบบ EVENTS HANDLER (เจาะจงเฉพาะไฟล์หลัก)
 // ==========================================
 const eventsPath = path.join(__dirname, 'events');
-const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js'));
 
-for (const file of eventFiles) {
-  const filePath = path.join(eventsPath, file);
-  const event = require(filePath);
-  
-  // 🔥 ระบบตัวกรองป้องกันบอทค้าง: 
-  // ถ้าไฟล์ไหนไม่มีรูปแบบโครงสร้าง Event ที่ถูกต้อง (เช่น ไม่มี name หรือไม่มี execute) ให้ข้ามทันที
-  if (!event || !event.name || typeof event.execute !== 'function') {
-    console.log(`[System Info] ข้ามการโหลดไฟล์เนื่องจากไม่ใช่โครงสร้าง Event: ${file}`);
-    continue; 
-  }
+// 🎯 ล็อกเป้าหมายโหลดเฉพาะ 2 ไฟล์นี้เท่านั้น ไฟล์อื่นในโฟลเดอร์จะไม่ถูกดึงมารันให้ค้าง
+const targetFiles = ['ready.js', 'interaction.js'];
 
-  if (event.once) {
-    client.once(event.name, (...args) => event.execute(...args, client));
-  } else {
-    client.on(event.name, (...args) => event.execute(...args, client));
+for (const fileName of targetFiles) {
+  try {
+    const filePath = path.join(eventsPath, fileName);
+    const event = require(filePath);
+    
+    if (event && event.name && typeof event.execute === 'function') {
+      if (event.once) {
+        client.once(event.name, (...args) => event.execute(...args, client));
+      } else {
+        client.on(event.name, (...args) => event.execute(...args, client));
+      }
+      console.log(`[System] โหลดไฟล์ Event สำเร็จ: ${fileName}`);
+    }
+  } catch (error) {
+    console.log(`[Warning] ไม่สามารถโหลดไฟล์ ${fileName} ได้ หรือไม่มีไฟล์นี้อยู่จริง`);
   }
 }
 
@@ -77,6 +78,7 @@ client.distube
   });
 
 // เข้าสู่ระบบด้วย Token
+console.log('[System] กำลังเชื่อมต่อไปยัง Discord...');
 client.login(process.env.TOKEN).catch(err => {
   console.error('[Login Error] ไม่สามารถเชื่อมต่อกับ Discord ได้ ตรวจสอบ TOKEN อีกครั้ง:', err);
 });
